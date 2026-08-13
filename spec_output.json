@@ -1,0 +1,73 @@
+{
+  "elements": [
+    {
+      "name": "top_cloud",
+      "shape_type": "blob",
+      "color": "#8d9095",
+      "position": {
+        "x_pct": 17,
+        "y_pct": 45
+      },
+      "motion": {
+        "type": "pulse",
+        "path": "straight",
+        "duration_ms": 2000,
+        "easing": "ease-in-out"
+      },
+      "particle_trail": false
+    },
+    {
+      "name": "bottom_cloud",
+      "shape_type": "blob",
+      "color": "#8d9095",
+      "position": {
+        "x_pct": 14,
+        "y_pct": 80
+      },
+      "motion": {
+        "type": "pulse",
+        "path": "straight",
+        "duration_ms": 2000,
+        "easing": "ease-in-out"
+      },
+      "particle_trail": false
+    },
+    {
+      "name": "upper_lightning",
+      "shape_type": "zigzag",
+      "color": "#0040ff",
+      "position": {
+        "x_pct": 62,
+        "y_pct": 35
+      },
+      "motion": {
+        "type": "whip",
+        "path": "straight",
+        "duration_ms": 400,
+        "easing": "ease-out"
+      },
+      "particle_trail": true
+    },
+    {
+      "name": "lower_lightning",
+      "shape_type": "zigzag",
+      "color": "#0040ff",
+      "position": {
+        "x_pct": 65,
+        "y_pct": 65
+      },
+      "motion": {
+        "type": "whip",
+        "path": "wavy",
+        "duration_ms": 500,
+        "easing": "ease-out"
+      },
+      "particle_trail": true
+    }
+  ],
+  "canvas": {
+    "width": 512,
+    "height": 512,
+    "background": "transparent"
+  }
+}

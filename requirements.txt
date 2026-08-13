@@ -1,0 +1,8 @@
+google-genai
+cairosvg
+python-dotenv
+streamlit
+# Only needed later, for agent_engine_wrappers.py / Vertex AI deployment:
+# google-cloud-aiplatform[agent_engines,langchain]
+# cloudpickle==3.0.0
+# pydantic>=2.10
