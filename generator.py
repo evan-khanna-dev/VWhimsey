@@ -14,16 +14,9 @@ deprecated `vertexai.generative_models` module.
 import json
 import os
 
-from dotenv import load_dotenv
+from client import get_client, MODEL_NAME
 
-load_dotenv()
-
-from google import genai
-
-API_KEY = os.environ["GOOGLE_API_KEY"]
-MODEL_NAME = os.environ.get("GEMINI_MODEL", "gemini-3.6-flash")
-
-client = genai.Client(api_key=API_KEY)
+client = get_client()
 
 GENERATOR_PROMPT = """
 You are a Generation agent in a VFX pipeline. Turn the following motion

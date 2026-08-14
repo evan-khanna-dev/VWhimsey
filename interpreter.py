@@ -14,21 +14,11 @@ before you're ready to deal with Vertex AI project setup.
 import json
 import os
 
-from dotenv import load_dotenv
-
-load_dotenv()
-
-from google import genai
 from google.genai import types
 
-# Set via: export GOOGLE_API_KEY=your-key-from-aistudio.google.com
-API_KEY = os.environ["GOOGLE_API_KEY"]
+from client import get_client, MODEL_NAME
 
-# Check aistudio.google.com for the current valid model name before relying
-# on this — model names/versions change over time.
-MODEL_NAME = os.environ.get("GEMINI_MODEL", "gemini-3.6-flash")
-
-client = genai.Client(api_key=API_KEY)
+client = get_client()
 
 INTERPRETER_PROMPT = """
 You are analyzing a hand-drawn sketch for a VFX motion design tool.

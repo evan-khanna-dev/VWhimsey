@@ -34,36 +34,46 @@ sketch.jpg + "circle pulses, squiggle whips like a flame trail"
 
 ## Files
 
+- `client.py` — shared Gemini client. Toggles between AI Studio (API
+  key, no billing) and Vertex AI Agent Platform (what the hackathon
+  submission requires) via one env var — nothing else needs to change.
 - `interpreter.py` — sketch + description → motion spec (JSON)
 - `generator.py` — motion spec → animated SVG code
 - `critic.py` — renders SVG, judges it against original intent
 - `orchestrator.py` — runs the full loop end-to-end, writes `output.svg`
-- `agent_engine_wrappers.py` — optional: wraps each stage as a
-  `LangchainAgent` and deploys to Vertex AI Agent Engine, matching the
-  pattern from the hackathon-provided notebook
-  (`intro_agent_engine.ipynb`)
+- `app.py` — local Streamlit UI: upload a sketch, describe movement,
+  see the result, no hand-editing files needed
 - `requirements.txt` — dependencies
 
 ## Running locally
 
-`interpreter.py`, `generator.py`, and `critic.py` currently use the
-**`google-genai` SDK with a plain API key** (from aistudio.google.com),
-not Vertex AI project billing. This was a deliberate switch after
-hitting Vertex AI project-quota and billing setup friction — it lets
-you build and test the actual agent logic without a linked
-card/billing account. `agent_engine_wrappers.py` is still Vertex-AI
-based and only matters once you're ready to deploy to Agent Engine
-specifically (see its own docstring).
+By default this runs against the **AI Studio Gemini Developer API**
+(a plain API key, no billing) — good for fast iteration. Note: per
+the hackathon rules ("Gemini models on **Agent Platform**"), the
+*submitted* project needs to actually run against Vertex AI, not just
+AI Studio — switch that over before you submit (see below).
 
 ```bash
-export GOOGLE_API_KEY=your-key-from-aistudio.google.com
+cp .env.example .env
+# edit .env and paste your real GOOGLE_API_KEY
 pip install -r requirements.txt
-python orchestrator.py
+streamlit run app.py
 ```
 
-Edit the `image_path` and `movement_description` in
-`orchestrator.py`'s `if __name__ == "__main__":` block to point at your
-actual sketch photo.
+### Switching to Vertex AI (for submission)
+
+Once your GCP project has billing linked:
+
+```
+# in .env
+USE_VERTEX_AI=true
+GOOGLE_CLOUD_PROJECT=your-hackathon-project-id
+GOOGLE_CLOUD_LOCATION=us-central1
+```
+
+Also run once per machine: `gcloud auth application-default login`.
+No code changes needed — `client.py` reads this and every other file
+picks it up automatically.
 
 ## Open decisions / things to verify before the demo
 
@@ -86,8 +96,8 @@ actual sketch photo.
    hosting the orchestrator as a small web app on Replit where a user
    uploads a sketch and gets back the SVG live — that's your partner
    integration piece.
-5. **Deployment** — `agent_engine_wrappers.py` is optional and only
-   matters if the judging criteria specifically wants to see agents
-   deployed to Agent Engine. For the demo video itself, running
-   `orchestrator.py` locally or on Replit is probably faster to
-   iterate on.
+5. **Vertex AI switch for submission** — see the "Switching to Vertex
+   AI" section above. This is the piece needed to satisfy the
+   hackathon's actual rule ("Gemini models on Agent Platform") —
+   the AI Studio path is great for dev speed but likely doesn't
+   count toward the submission requirement on its own.

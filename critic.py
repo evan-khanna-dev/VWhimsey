@@ -15,17 +15,11 @@ deprecated `vertexai.generative_models` module.
 import json
 import os
 
-from dotenv import load_dotenv
-
-load_dotenv()
-
-from google import genai
 from google.genai import types
 
-API_KEY = os.environ["GOOGLE_API_KEY"]
-MODEL_NAME = os.environ.get("GEMINI_MODEL", "gemini-3.6-flash")
+from client import get_client, MODEL_NAME
 
-client = genai.Client(api_key=API_KEY)
+client = get_client()
 
 CRITIC_PROMPT = """
 You are the Critique/Refine agent in a VFX generation pipeline.
