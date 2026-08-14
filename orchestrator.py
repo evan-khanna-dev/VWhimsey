@@ -12,6 +12,7 @@ demo video.
 from interpreter import sketch_to_spec
 from generator import spec_to_svg
 from critic import critique_render
+from clickhouse_log import log_run
 
 MAX_PASSES = 2  # matches the "2nd pass creates agentic loop" plan
 
@@ -21,7 +22,8 @@ def run_pipeline(image_path: str, movement_description: str) -> dict:
     Runs the full sketch -> motion spec -> SVG -> critique loop.
 
     Returns a dict with the final SVG code, whether it was approved,
-    and a log of each pass for debugging / demo purposes.
+    and a log of each pass for debugging / demo purposes. Also logs
+    the run's outcome to ClickHouse for later querying.
     """
     log = []
 
@@ -45,12 +47,20 @@ def run_pipeline(image_path: str, movement_description: str) -> dict:
 
         revision_notes = critique.get("notes", "")
 
+    passes_used = len([entry for entry in log if entry["stage"] == "generation"])
+
+    log_run(
+        movement_description=movement_description,
+        approved=approved,
+        passes_used=passes_used,
+        interpreter_output=spec,
+        critique_notes=revision_notes or "",
+    )
+
     return {
         "approved": approved,
         "svg_code": svg_code,
-        "passes_used": len(
-            [entry for entry in log if entry["stage"] == "generation"]
-        ),
+        "passes_used": passes_used,
         "log": log,
     }
 
@@ -58,7 +68,7 @@ def run_pipeline(image_path: str, movement_description: str) -> dict:
 if __name__ == "__main__":
     result = run_pipeline(
         image_path="sample_sketch.jpg",
-        movement_description="gray clouds with blue lightning shooting out of them",
+        movement_description="circle pulses, squiggle whips like a flame trail",
     )
 
     print(f"Approved: {result['approved']}")

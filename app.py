@@ -17,6 +17,7 @@ import tempfile
 import streamlit as st
 
 from orchestrator import run_pipeline
+from insights import ask_about_runs
 
 st.set_page_config(page_title="Sketch-to-VFX", layout="wide")
 
@@ -102,3 +103,24 @@ with col_output:
                     st.code(entry["output"], language="xml")
     elif not generate_clicked:
         st.info("Upload a sketch and click Generate VFX to see output here.")
+
+st.divider()
+st.subheader("Insights")
+st.caption(
+    "Ask about past runs — this queries real history stored in "
+    "ClickHouse via its MCP server."
+)
+insight_question = st.text_input(
+    "Ask a question",
+    placeholder="e.g. How many runs needed a retry before approval?",
+)
+if st.button("Ask"):
+    if not insight_question.strip():
+        st.warning("Type a question first.")
+    else:
+        with st.spinner("Querying run history..."):
+            try:
+                answer = ask_about_runs(insight_question)
+                st.write(answer)
+            except Exception as e:
+                st.error(f"Insights query failed: {e}")
