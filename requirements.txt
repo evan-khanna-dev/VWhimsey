@@ -3,7 +3,6 @@ cairosvg
 python-dotenv
 streamlit
 clickhouse-connect
-mcp
 mcp-clickhouse
 pydantic-settings
 # Only needed later, for agent_engine_wrappers.py / Vertex AI deployment:
