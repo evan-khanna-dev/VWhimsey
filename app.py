@@ -33,7 +33,7 @@ st.markdown(THEME_CSS, unsafe_allow_html=True)
 st.markdown(
     render_hero(
         "VWhimsey",
-        "Draw something rough — describe how it moves — get real, "
+        "Draw something rough, describe how it moves, get real, "
         "exportable motion back.",
     ),
     unsafe_allow_html=True,
