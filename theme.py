@@ -342,6 +342,19 @@ div[data-testid="stButton"] button[kind="secondary"] {{
   color: var(--accent-800) !important;
   border: 1px solid rgba(41,102,163,0.35) !important;
 }}
+/* Streamlit wraps button labels in their own markdown container ("p" /
+   [data-testid=stMarkdownContainer]), which the global text-color rule
+   above also matches directly - a direct rule on that descendant beats
+   inheritance from the button, so without this the label text ignores
+   whatever color the button itself sets. Force it back to match. */
+div[data-testid="stButton"] button[kind="primary"] p,
+div[data-testid="stButton"] button[kind="primary"] [data-testid="stMarkdownContainer"] {{
+  color: #ffffff !important;
+}}
+div[data-testid="stButton"] button[kind="secondary"] p,
+div[data-testid="stButton"] button[kind="secondary"] [data-testid="stMarkdownContainer"] {{
+  color: var(--accent-800) !important;
+}}
 div[data-testid="stButton"] button[kind="primary"]:disabled {{
   background: linear-gradient(135deg, rgba(58,134,207,0.55), rgba(22,58,99,0.55)) !important;
   color: rgba(255,255,255,0.85) !important;
