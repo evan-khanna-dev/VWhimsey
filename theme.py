@@ -32,6 +32,8 @@ whatever brightness is behind it - verified against the brightest
 sampled frame (max_brightness ~247.7, i.e. near-white flare core).
 """
 
+import html as _html
+
 STATIC_BASE = "app/static"
 
 FONT_IMPORT = (
@@ -196,7 +198,8 @@ html, body, [class*="css"] {{
 /* ---------- glass panels ---------- */
 .st-key-vwhim_input_panel > div,
 .st-key-vwhim_output_panel > div,
-.st-key-vwhim_insights_panel > div {{
+.st-key-vwhim_insights_panel > div,
+.st-key-vwhim_gallery_panel > div {{
   border-radius: 22px;
   border: 1px solid var(--glass-border);
 }}
@@ -214,12 +217,82 @@ html, body, [class*="css"] {{
   padding: 1.5rem 1.6rem 1.7rem;
   box-shadow: 0 14px 44px rgba(22,33,59,0.16), 0 0 0 1px rgba(255,255,255,0.4) inset;
 }}
-.st-key-vwhim_insights_panel > div {{
+.st-key-vwhim_insights_panel > div,
+.st-key-vwhim_gallery_panel > div {{
   background: linear-gradient(180deg, rgba(255,255,255,0.42), rgba(255,255,255,0.30));
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
   padding: 0.9rem 1.3rem 1.1rem;
   box-shadow: 0 4px 18px rgba(22,33,59,0.08);
+}}
+
+/* ---------- gallery ---------- */
+.vwhim-run-card {{
+  display: flex;
+  flex-direction: column;
+  border-radius: 14px;
+  overflow: hidden;
+  background: rgba(255,255,255,0.55);
+  border: 1px solid rgba(255,255,255,0.6);
+  box-shadow: 0 4px 14px rgba(22,33,59,0.10);
+  margin-bottom: 1rem;
+}}
+.vwhim-run-body {{
+  padding: 0.7rem 0.85rem 0.8rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}}
+.vwhim-run-desc {{
+  font-size: 0.86rem;
+  color: var(--ink-900);
+  margin: 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}}
+.vwhim-run-meta {{
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}}
+.vwhim-run-card .vwhim-badge {{
+  font-size: 0.7rem;
+  padding: 0.2rem 0.55rem;
+  margin-bottom: 0;
+}}
+.vwhim-run-passes {{
+  font-size: 0.75rem;
+  color: var(--ink-500);
+  white-space: nowrap;
+}}
+.vwhim-run-time {{
+  font-size: 0.72rem;
+  color: var(--ink-500);
+  margin: 0;
+}}
+.vwhim-run-notes {{
+  font-size: 0.78rem;
+  font-style: italic;
+  color: var(--ink-700);
+  background: rgba(160,110,30,0.08);
+  border-left: 3px solid rgba(160,110,30,0.45);
+  border-radius: 0 6px 6px 0;
+  padding: 0.4rem 0.55rem;
+  margin: 0.1rem 0 0;
+}}
+.vwhim-run-notes-label {{
+  font-style: normal;
+  font-weight: 600;
+  color: #7a5414;
+}}
+.vwhim-run-empty {{
+  color: var(--ink-500);
+  font-size: 0.9rem;
+  text-align: center;
+  padding: 1rem 0;
 }}
 
 .vwhim-panel-eyebrow {{
@@ -237,6 +310,41 @@ html, body, [class*="css"] {{
   font-size: 1.4rem;
   color: var(--ink-700);
   margin: 0 0 0.3rem;
+}}
+
+/* ---------- "try an example" quick-start row ---------- */
+/* Deliberately quiet/secondary vs. the real upload flow: small muted
+   label, small thumbnails, small buttons - a fast-path shortcut, not
+   a second primary action competing with it. */
+p.vwhim-example-label {{
+  font-size: 0.78rem !important;
+  font-weight: 500;
+  color: var(--ink-500) !important;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  margin: 0.7rem 0 0.5rem !important;
+}}
+.st-key-vwhim_example_row {{ margin-bottom: 0.6rem; }}
+.st-key-vwhim_example_row [data-testid="stImage"] img {{
+  border-radius: 10px;
+  border: 1px solid rgba(22,33,59,0.14);
+  opacity: 0.92;
+  transition: opacity 0.12s ease, transform 0.12s ease;
+  /* source examples have different aspect ratios (one portrait, one
+     near-square) - crop both to a matching height so the two thumbnail
+     + button pairs line up in a neat row instead of staggering. */
+  height: 120px;
+  width: 100%;
+  object-fit: cover;
+}}
+.st-key-vwhim_example_row [data-testid="stImage"] img:hover {{
+  opacity: 1;
+  transform: translateY(-1px);
+}}
+.st-key-vwhim_example_row div[data-testid="stButton"] button {{
+  font-size: 0.78rem !important;
+  font-weight: 500 !important;
+  padding: 0.3rem 0.5rem !important;
 }}
 
 /* ---------- empty state / signature mark reuse ---------- */
@@ -369,6 +477,74 @@ div[data-testid="stButton"] button[kind="primary"]:disabled {{
   border: 1px solid rgba(22,33,59,0.10) !important;
 }}
 
+/* ---------- live pipeline status (st.status renders as stExpander too,
+   so it inherits the glass treatment above for free) ---------- */
+.vwhim-steps {{
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  padding: 0.2rem 0;
+}}
+.vwhim-step {{
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  font-size: 0.92rem;
+}}
+.vwhim-step-icon {{
+  flex: 0 0 auto;
+  width: 1.2rem;
+  height: 1.2rem;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.72rem;
+  line-height: 1;
+}}
+.vwhim-step-icon--pending {{
+  border: 1.5px solid rgba(22,33,59,0.2);
+}}
+.vwhim-step-icon--active {{
+  border: 2px solid rgba(41,102,163,0.22);
+  border-top-color: var(--accent-600);
+  animation: vwhim-step-spin 0.8s linear infinite;
+}}
+.vwhim-step-icon--done {{
+  background: rgba(41,102,163,0.16);
+  color: var(--accent-800);
+  font-weight: 700;
+}}
+.vwhim-step-icon--rejected {{
+  background: rgba(160,110,30,0.16);
+  color: #7a5414;
+  font-weight: 700;
+}}
+.vwhim-step-icon--failed {{
+  background: rgba(179,38,30,0.14);
+  color: #a3241c;
+  font-weight: 700;
+}}
+@keyframes vwhim-step-spin {{ to {{ transform: rotate(360deg); }} }}
+@media (prefers-reduced-motion: reduce) {{
+  .vwhim-step-icon--active {{ animation: none; border-top-color: rgba(41,102,163,0.5); }}
+}}
+.vwhim-step-label {{ color: var(--ink-900); }}
+.vwhim-step--pending .vwhim-step-label {{ color: var(--ink-500); }}
+.vwhim-step--active .vwhim-step-label {{ color: var(--accent-800); font-weight: 600; }}
+.vwhim-step--rejected .vwhim-step-label {{ color: #7a5414; }}
+.vwhim-step--failed .vwhim-step-label {{ color: #a3241c; }}
+.vwhim-step-detail {{
+  margin: -0.1rem 0 0.1rem 1.85rem;
+  padding: 0.5rem 0.7rem;
+  background: rgba(160,110,30,0.08);
+  border-left: 3px solid rgba(160,110,30,0.45);
+  border-radius: 0 8px 8px 0;
+  font-size: 0.82rem;
+  font-style: italic;
+  color: var(--ink-700);
+}}
+
 hr {{
   border-color: rgba(22,33,59,0.14) !important;
 }}
@@ -412,3 +588,36 @@ def empty_state(message: str) -> str:
   <p>{message}</p>
 </div>
 """
+
+
+_STEP_ICONS = {
+    "pending": "",
+    "active": "",
+    "done": "✓",
+    "rejected": "!",
+    "failed": "✕",
+}
+
+
+def render_pipeline_steps(steps: list[dict]) -> str:
+    """Renders the live agent-by-agent status list shown inside
+    st.status() while the pipeline runs. Each step is
+    {"label": str, "state": "pending"|"active"|"done"|"rejected"|"failed",
+    "detail": str | None} - see app.py's on_update callback, which is
+    the only thing that ever populates `steps` (this function just
+    turns that state into markup, no logic of its own)."""
+    rows = []
+    for step in steps:
+        state = step["state"]
+        icon = _STEP_ICONS.get(state, "")
+        label = _html.escape(step["label"])
+        rows.append(
+            f'<div class="vwhim-step vwhim-step--{state}">'
+            f'<span class="vwhim-step-icon vwhim-step-icon--{state}">{icon}</span>'
+            f'<span class="vwhim-step-label">{label}</span>'
+            f"</div>"
+        )
+        detail = step.get("detail")
+        if detail:
+            rows.append(f'<div class="vwhim-step-detail">{_html.escape(detail)}</div>')
+    return '<div class="vwhim-steps">' + "".join(rows) + "</div>"

@@ -14,6 +14,7 @@ deprecated `vertexai.generative_models` module.
 
 import json
 import os
+import xml.etree.ElementTree as ET
 
 from google.genai import types
 
@@ -65,8 +66,26 @@ def critique_render(svg_code: str, original_intent: str) -> dict:
     """
     Compares a rendered SVG result to the original intent. Returns a
     dict: {"approved": bool, "notes": str}. On approval, notes is empty.
+
+    A Generator output that isn't even valid XML (a mismatched/unclosed
+    tag, usually from truncation) can't be rasterized to judge at all -
+    rather than letting that crash the whole pipeline, it's treated as
+    an automatic rejection with notes explaining what's wrong, so it
+    flows through the same Generator-revises retry loop as an ordinary
+    quality rejection instead of being a dead end.
     """
-    png_bytes = _render_svg_to_png_bytes(svg_code)
+    try:
+        png_bytes = _render_svg_to_png_bytes(svg_code)
+    except ET.ParseError as e:
+        return {
+            "approved": False,
+            "notes": (
+                f"The generated SVG is not valid XML ({e}) and couldn't "
+                "be rendered at all. Make sure every tag you open is "
+                "properly closed and the file is complete, well-formed SVG."
+            ),
+        }
+
     prompt = CRITIC_PROMPT.format(original_intent=original_intent)
 
     image_part = types.Part.from_bytes(data=png_bytes, mime_type="image/png")

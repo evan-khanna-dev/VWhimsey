@@ -32,6 +32,19 @@ sketch.jpg + "circle pulses, squiggle whips like a flame trail"
    final .svg file
 ```
 
+## Why SVG, not video
+
+Output is deliberately SVG-only — there's no MP4/WebM export path, and
+that's not a gap to fill in later. The generated SVG carries
+structured, re-parseable motion data (element positions, easing
+curves, durations) via native SMIL animation tags, rather than being
+flattened into pixels. That makes it more directly useful for
+downstream tools with SVG/vector import support (e.g. Unity's Vector
+Graphics package for shape geometry) than a flattened video clip would
+be, where all of that structure is gone. (A video export path was
+built and tested, then deliberately removed once we confirmed SVG
+alone was the better fit — it's in git history if useful as reference.)
+
 ## Files
 
 - `client.py` — shared Gemini client. Toggles between AI Studio (API
