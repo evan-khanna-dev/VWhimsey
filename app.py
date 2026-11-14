@@ -12,12 +12,13 @@ Run with:
 """
 
 import tempfile
+import traceback
 from pathlib import Path
 
 import streamlit as st
 
 from orchestrator import run_pipeline
-from insights import ask_about_runs
+from insights import ask_about_runs, InsightsTimeout
 from gallery import render_gallery, invalidate_cache as invalidate_gallery_cache
 from theme import (
     THEME_CSS,
@@ -367,7 +368,20 @@ with st.container(key="vwhim_insights_panel"):
                     try:
                         answer = ask_about_runs(insight_question)
                         st.write(answer)
+                    except InsightsTimeout:
+                        # A separate, still-undiagnosed intermittent hang
+                        # (MCP tool calls finish, the final Gemini response
+                        # never arrives) - insights.py bounds it with a
+                        # timeout so this surfaces fast and retryable
+                        # instead of freezing the spinner forever.
+                        st.warning("That query took too long, please try again.")
                     except Exception as e:
+                        # Full traceback to server logs (not shown to the
+                        # user) - cheap and worth keeping permanently, since
+                        # this call has a real failure history; see
+                        # insights.py for the diagnosed root cause of the
+                        # "unhandled errors in a TaskGroup" case specifically.
+                        print(traceback.format_exc(), flush=True)
                         st.error(f"Insights query failed: {e}")
 
 st.markdown("<div style='height:1rem'></div>", unsafe_allow_html=True)

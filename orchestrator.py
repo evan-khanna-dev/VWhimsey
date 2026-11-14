@@ -9,6 +9,7 @@ with an actual feedback loop — the part worth showing on camera in the
 demo video.
 """
 
+import mimetypes
 from collections.abc import Callable
 
 from interpreter import sketch_to_spec
@@ -53,6 +54,12 @@ def run_pipeline(
     log.append({"stage": "interpreter", "output": spec})
     notify("interpreter_done")
 
+    # Read once up front so the Critic can compare every pass against the
+    # original sketch, not just the text intent.
+    with open(image_path, "rb") as f:
+        sketch_bytes = f.read()
+    sketch_mime = mimetypes.guess_type(image_path)[0] or "image/png"
+
     revision_notes = None
     svg_code = None
     approved = False
@@ -64,7 +71,12 @@ def run_pipeline(
         notify("generator_done", pass_num=pass_num)
 
         notify("critic_start", pass_num=pass_num)
-        critique = critique_render(svg_code, original_intent=movement_description)
+        critique = critique_render(
+            svg_code,
+            original_intent=movement_description,
+            sketch_bytes=sketch_bytes,
+            sketch_mime=sketch_mime,
+        )
         log.append({"stage": "critique", "pass": pass_num, "output": critique})
         notify(
             "critic_done",

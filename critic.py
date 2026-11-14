@@ -1,20 +1,18 @@
 """
 Critique/Refine Agent (google-genai SDK version)
-----------------------------------------------------
+------------------------------------------------
 Renders the generated SVG to a still image, then asks Gemini to
-compare that rendered result against the user's original intent
-(sketch description + movement description). Returns either an
-approval, or specific notes to send back to the Generation agent for
-another pass. This loop is what makes the pipeline agentic rather
-than a single one-shot generation call.
+compare that render against the user's original sketch and movement
+description. Approval is decided in code from per-item scores, so the
+model can't simply say "looks fine". Returns either an approval or
+specific notes to send back to the Generation agent for another pass.
 
-Uses the current `google-genai` SDK with a plain API key, not the
-deprecated `vertexai.generative_models` module.
+Uses the current `google-genai` SDK with a plain API key.
 """
 
 import json
-import os
 import xml.etree.ElementTree as ET
+from typing import Optional
 
 from google.genai import types
 
@@ -23,20 +21,29 @@ from client import get_client, MODEL_NAME
 client = get_client()
 
 CRITIC_PROMPT = """
-You are the Critique/Refine agent in a VFX generation pipeline.
+You are a strict critic in a sketch-to-animation pipeline.
+Default to REJECT unless the result clearly matches the sketch.
 
-Original user intent: "{original_intent}"
+You get two images:
+IMAGE 1: the user's original sketch.
+IMAGE 2: a still frame of the generated SVG.
 
-Look at the attached still frame of the generated animation and decide:
-1. Does it plausibly match the described shapes and movement intent?
-2. Are there obvious problems (wrong element missing, colors way off,
-   motion direction backwards, elements overlapping incorrectly)?
+User's movement description: "{original_intent}"
 
-Return ONLY valid JSON, no prose, no markdown fences:
+First list the distinct shapes you see in the sketch. Then score each
+item from 1 to 5 (5 = clearly matches the sketch, 1 = clearly wrong):
+- shapes: every shape in the sketch appears in the result
+- layout: shapes sit in the same positions and proportions as the sketch
+- smoothness: curves in the sketch are smooth curves, not jagged polygons
+- framing: nothing important is cut off or runs outside the canvas
+- intent: the frame is consistent with the movement description
+
+Return ONLY JSON, no prose, no markdown fences:
 {{
-  "approved": true,
-  "notes": "string — empty if approved, otherwise specific, actionable
-             instructions the Generation agent can act on directly"
+  "sketch_shapes": ["..."],
+  "scores": {{"shapes": 1, "layout": 1, "smoothness": 1, "framing": 1, "intent": 1}},
+  "problems": ["specific problem", "..."],
+  "fixes": "specific instructions the generator can act on directly"
 }}
 """
 
@@ -55,24 +62,26 @@ def _render_svg_to_png_bytes(svg_code: str) -> bytes:
     Rasterizes SVG (a static/first frame) to PNG bytes so Gemini can
     view it. Requires `cairosvg` (pip install cairosvg + system cairo
     library). Note: SMIL animations rasterize to their initial frame
-    only — see README for the mid-animation-frame caveat.
+    only, so motion itself is not judged here.
     """
     import cairosvg
 
     return cairosvg.svg2png(bytestring=svg_code.encode("utf-8"))
 
 
-def critique_render(svg_code: str, original_intent: str) -> dict:
+def critique_render(
+    svg_code: str,
+    original_intent: str,
+    sketch_bytes: Optional[bytes] = None,
+    sketch_mime: str = "image/png",
+) -> dict:
     """
-    Compares a rendered SVG result to the original intent. Returns a
-    dict: {"approved": bool, "notes": str}. On approval, notes is empty.
+    Compares a rendered SVG result to the user's sketch and intent.
+    Returns {"approved": bool, "notes": str}. On approval, notes is empty.
 
-    A Generator output that isn't even valid XML (a mismatched/unclosed
-    tag, usually from truncation) can't be rasterized to judge at all -
-    rather than letting that crash the whole pipeline, it's treated as
-    an automatic rejection with notes explaining what's wrong, so it
-    flows through the same Generator-revises retry loop as an ordinary
-    quality rejection instead of being a dead end.
+    An SVG that isn't valid XML (usually truncation) can't be rendered,
+    so it is treated as an automatic rejection with notes, and flows
+    through the same Generator-revises retry loop as any other rejection.
     """
     try:
         png_bytes = _render_svg_to_png_bytes(svg_code)
@@ -86,21 +95,38 @@ def critique_render(svg_code: str, original_intent: str) -> dict:
             ),
         }
 
-    prompt = CRITIC_PROMPT.format(original_intent=original_intent)
-
-    image_part = types.Part.from_bytes(data=png_bytes, mime_type="image/png")
+    parts = []
+    if sketch_bytes:
+        parts.append(
+            types.Part.from_bytes(data=sketch_bytes, mime_type=sketch_mime)
+        )
+    parts.append(types.Part.from_bytes(data=png_bytes, mime_type="image/png"))
+    parts.append(CRITIC_PROMPT.format(original_intent=original_intent))
 
     response = client.models.generate_content(
         model=MODEL_NAME,
-        contents=[image_part, prompt],
+        contents=parts,
+        config=types.GenerateContentConfig(
+            response_mime_type="application/json",
+            temperature=0,
+        ),
     )
 
-    cleaned = _strip_code_fence(response.text)
-    return json.loads(cleaned)
+    result = json.loads(_strip_code_fence(response.text))
+    scores = result.get("scores", {})
+    approved = bool(scores) and min(scores.values()) >= 4
+
+    notes = ""
+    if not approved:
+        notes = (
+            "Problems: " + "; ".join(result.get("problems", []))
+            + ". Fixes: " + result.get("fixes", "")
+        )
+    return {"approved": approved, "notes": notes}
 
 
 if __name__ == "__main__":
-    # Quick manual smoke test — swap in real SVG output to try it.
+    # Quick manual smoke test - swap in real SVG output to try it.
     fake_svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'>" \
                "<circle cx='50' cy='50' r='20' fill='red'/></svg>"
     result = critique_render(
